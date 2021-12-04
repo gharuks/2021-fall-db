@@ -7,7 +7,6 @@ create table customers(
     zip varchar(6),
     phone_number varchar(15)
 );
-drop table customers cascade ;
 insert into customers(customer_id, customer_name, customer_email, city, street, zip, phone_number)
 values (1, 'Adem Madi', 'adem01@mail.com', 'Almaty', 'Almatinskaya', '050063', '+77077771234'),
        (2, 'Tomiris Serik', 'tomiris01@mail.com', 'Almaty', 'Abay', '050062', '+77077773456'),
@@ -27,8 +26,8 @@ create table purchase(
     foreign key (store_id) references store
 );
 insert into purchase(purchase_id, customer_id, purchase_type, store_id, date, product_id, total_cost)
-values (1, 1, 'online', null, '2021-03-05', 1, 100),
-       (2, 1, 'online', null,'2021-03-05', 2, 240),
+values (1, 1, 'online', null, '2021-04-05', 1, 100),
+       (2, 1, 'online', null,'2021-04-05', 2, 240),
        (3, 3, 'in store', 2, '2021-06-06', 5, 450),
        (4, 1, 'in store', 1,'2021-06-11', 1, 500),
        (5, 5, 'online', null, '2021-07-05', 3, 150),
@@ -40,16 +39,19 @@ create table products(
     product_name varchar(50),
     manufacturer varchar(50),
     price numeric,
-    product_quantity integer
+    product_quantity integer,
+    store_id integer,
+    foreign key (store_id) references store
 );
-insert into products(product_id, product_name, manufacturer, price, product_quantity)
-values (1, 'Laptop', 'Acer', 100, 10),
-       (2, 'Laptop', 'Lenova', 120, 10),
-       (3, 'Smartphone', 'Apple', 150, 10),
-       (4, 'Smartphone', 'Samsung', 110, 10),
-       (5, 'Monitor', 'Dell', 90, 10);
+insert into products(product_id, product_name, manufacturer, price, product_quantity, store_id)
+values (1, 'Laptop', 'Acer', 100, 10, 1),
+       (2, 'Laptop', 'Lenova', 120, 10, 1),
+       (3, 'Smartphone', 'Apple', 150, 10, 2),
+       (4, 'Smartphone', 'Samsung', 110, 10, 3),
+       (5, 'Monitor', 'Dell', 90, 10, 2),
+       (6, 'Tablet', 'Asus', 110, 0, 4),
+       (7, 'Laptop', 'HP', 160, 0, 5);
 
-drop table purchase;
 create table order_details(
     purchase_id integer primary key,
     customer_id integer,
@@ -67,13 +69,11 @@ values (1, 1, 1, 0, '2021-04-05', false),
        (5, 5, 3, 0, '2021-07-05', true),
        (7, 4, 3, 0, '2021-09-08',true);
 
-drop table order_details;
 create table accounts(
     customer_id integer primary key,
     account_code integer,
     foreign key (customer_id) references customers
 );
-
 insert into accounts(customer_id, account_code)
 values (2, 86707),
        (4, 84309);
@@ -92,6 +92,7 @@ values (1, 'Acer', 'Almaty', '+77071234567', 1),
        (3, 'Samsung', 'Almaty', '+77072345678', 4),
        (4, 'Dell', 'Almaty', '+7075673456', 5),
        (5, 'Lenovo', 'Almaty', '+77073451234', 2);
+
 create table delivery(
     delivery_id integer primary key,
     purchase_id integer,
@@ -104,10 +105,10 @@ create table delivery(
     foreign key (customer_id) references customers
 );
 insert into delivery(delivery_id, purchase_id, customer_id, tracking_number, delivery_date, shipping_type, order_status)
-values (1, 1, 1, '123456', '2021-04-05', 'car delivery', 'destroyed'),
-       (2, 1, 2, '232465', '2021-04-05', 'car delivery', 'completed'),
-       (5, 5, 3, '354678', '2021-07-05', 'rail transportation', 'completed'),
-       (7, 4, 3, '354636', '2021-09-08', 'car delivery', 'in progress');
+values (1, 1, 1, '123456', '2021-04-06', 'car delivery', 'destroyed'),
+       (2, 2, 1, '232465', '2021-04-05', 'car delivery', 'completed'),
+       (3, 5, 5, '354678', '2021-07-05', 'rail transportation', 'completed'),
+       (4, 7, 4, '354636', '2021-09-08', 'car delivery', 'in progress');
 create table store(
     store_id integer primary key,
     store_name varchar(50),
@@ -118,7 +119,9 @@ create table store(
 insert into store(store_id, store_name, city, region, street)
 values (1, 'Store1', 'Almaty', 'Almaty', 'Kunaeva'),
        (2, 'Store2', 'Taraz', 'Zhambyl', 'Mukataeva'),
-       (3, 'Store3', 'Nur-sultan', 'Nur-sultan', 'Abay');
+       (3, 'Store3', 'Nur-sultan', 'Nur-sultan', 'Abay'),
+       (4, 'Store4', 'California', 'Central', 'Sunset Boulevard'),
+       (5, 'Store5', 'California', 'Central', 'Melrose-Avenue');
 create table sales(
     sales_id integer primary key,
     product_id integer,
@@ -144,7 +147,6 @@ where tracking_number='123456' and order_status='destroyed';
 update delivery
 set delivery_date=date_pli(delivery_date, 2), order_status='reordered'
 where order_status='destroyed';
-select * from delivery;
 
 select customer_id, sum(total_cost) as most_cost from purchase
 group by customer_id
@@ -156,11 +158,19 @@ where time_period>'2021-01-01' and time_period<'2021-12-31'
 order by total_cost desc
 limit 2;
 
+select product_id, total_cost from purchase
+where date>'2021-01-01' and date<'2021-12-31'
+order by total_cost desc
+limit 2;
+
+select * from products inner join store s on products.store_id = s.store_id
+where product_quantity=0 and city='California';
+
 select * from delivery
-inner join order_details od on delivery.customer_id = od.customer_id
+inner join order_details od on delivery.customer_id = od.customer_id and delivery.purchase_id=od.purchase_id
 where delivery_date!=purchase_date;
 
 select * from purchase
-where date<='2021-03-30' and date>='2021-03-01'
+where date<='2021-04-30' and date>='2021-04-01'
 group by purchase_id
 order by sum(total_cost);
