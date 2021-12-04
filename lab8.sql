@@ -4,18 +4,21 @@ CREATE FUNCTION inc(value numeric) RETURNS integer AS $$
         RETURN value+1;
     END;$$
 LANGUAGE plpgsql;
+select inc(2);
 ----------b)
 CREATE FUNCTION sum(value1 numeric, value2 numeric) RETURNS integer AS $$
     BEGIN
         RETURN value1+value2;
     END;$$
 LANGUAGE plpgsql;
+select sum(1,3);
 ----------c)
 CREATE OR REPLACE FUNCTION even(value integer) RETURNS boolean AS $$
     BEGIN
         return (value%2=0);
     END;$$
 LANGUAGE plpgsql;
+select even(94);
 ----------d)
 CREATE OR REPLACE FUNCTION check_password(password varchar(20)) RETURNS boolean AS $$
     BEGIN
@@ -24,13 +27,15 @@ CREATE OR REPLACE FUNCTION check_password(password varchar(20)) RETURNS boolean 
         end if;
     END;$$
 LANGUAGE plpgsql;
+select check_password('asadff');
 ----------e)
-CREATE OR REPLACE FUNCTION two_output(name varchar, out a varchar, out b varchar) AS $$
+CREATE OR REPLACE FUNCTION two_output(name varchar, out a varchar, out b varchar) RETURNS record AS $$
     BEGIN
         a:=split_part(name, ' ', 1);
         b:=split_part(name, ' ', 2);
     END;$$
 LANGUAGE plpgsql;
+select two_output('Aru Zhan');
 --2-----------a)
 CREATE TABLE person
 (
@@ -56,7 +61,8 @@ CREATE TABLE changes (
     last_name VARCHAR NOT NULL,
     changed_on TIMESTAMP NOT NULL
 );
-
+select * from changes;
+delete from changes;
 CREATE OR REPLACE FUNCTION timestmp_func() RETURNS trigger AS
 $timestmp$
 BEGIN
@@ -81,10 +87,11 @@ CREATE TABLE list(
     birth_date date,
     age int
 );
+select * from list;
 INSERT INTO list (id, name, birth_date)
 VALUES (2, 'Aru', '2003-05-05');
 INSERT INTO list (id, name, birth_date)
-VALUES (3, 'Adam', '1999-06-05');
+VALUES (4, 'Adam', '1999-06-05');
 
 CREATE OR REPLACE FUNCTION age_from_birthday()
 RETURNS trigger AS
@@ -108,6 +115,7 @@ CREATE TABLE orders(
 drop table orders;
 INSERT INTO orders(id, order_name, price)
 VALUES (1, 'order3', 100);
+select * from orders;
 
 CREATE OR REPLACE FUNCTION tax_price() RETURNS trigger AS $$
     BEGIN
@@ -121,7 +129,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER price_ch AFTER INSERT ON orders
     FOR EACH ROW EXECUTE FUNCTION tax_price();
 ----------d)
-
+delete from orders;
 CREATE OR REPLACE FUNCTION prevent_del() RETURNS trigger AS $$
     BEGIN
         RAISE EXCEPTION 'do not delete data';
@@ -139,7 +147,10 @@ CREATE TABLE account(
     password varchar
 );
 drop table account;
-INSERT INTO account(id, user_name, password) VALUES (1, 'Amy Brown', 'qwerty21');
+delete from account;
+select * from account;
+INSERT INTO account(id, user_name, password) VALUES (2, 'Aru Zhan', 'qwerty34');
+
 CREATE OR REPLACE FUNCTION function_de() RETURNS trigger AS $$
     BEGIN
         if check_password(NEW.password)=true then
@@ -152,7 +163,7 @@ CREATE OR REPLACE FUNCTION function_de() RETURNS trigger AS $$
     END;
     $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER de AFTER INSERT OR UPDATE ON account
+CREATE TRIGGER de BEFORE INSERT OR UPDATE ON account
     FOR EACH ROW EXECUTE FUNCTION function_de();
 --4----------a)
 CREATE TABLE workers(
@@ -164,17 +175,23 @@ CREATE TABLE workers(
     workexperience integer,
     discount integer
 );
-delete from workers;
 
+delete from workers;
+drop table workers;
 INSERT INTO workers(id, name, date_of_birth, age, salary, workexperience, discount)
 VALUES (1, 'David', '1993-06-07', 28, 100, 10, 0);
+
+select * from workers;
 
 CREATE OR REPLACE PROCEDURE procedure_a() AS $$
     BEGIN
         update workers
-        set salary=salary*1.1*workexperience/2, discount=10, discount=(discount*1.01)*workexperience/5;
+        set salary=salary*1.1*workexperience/2, discount=discount+10;
+        update workers
+        set discount=(discount*1.01)*workexperience/5;
         commit;
     END;$$ LANGUAGE plpgsql;
+CALL procedure_a();
 ---------b)
 INSERT INTO workers(id, name, date_of_birth, age, salary, workexperience, discount)
 VALUES (3, 'Carla', '1970-06-07', 40, 100, 10, 0);
@@ -184,9 +201,10 @@ CREATE OR REPLACE PROCEDURE procedure_b() AS $$
         update workers
         set salary=salary*1.15 where age>=40;
         update workers
-        set salary=salary*1.15*workers.workexperience/8, discount=20 where workexperience>=8;
+        set salary=salary*1.15*workers.workexperience/8, discount=discount+20 where workexperience>=8;
         commit;
     END;$$ LANGUAGE plpgsql;
+CALL procedure_b();
 -------------5
 CREATE TABLE members(
     memid integer,
